@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/pontus-devoteam/agent-sdk-go/pkg/model"
+	"github.com/pontus-devoteam/agent-sdk-go/pkg/tracing"
 )
 
 // RunOptions configures a run
@@ -187,6 +188,18 @@ type OutputGuardrail interface {
 
 // TracingConfig configures tracing
 type TracingConfig struct {
+	// Tracer is a custom tracer implementation used for this run. When set it
+	// replaces the default file tracer. The runner does not close a tracer
+	// supplied here - its lifecycle belongs to the caller - but it does flush it
+	// at the end of a run.
+	Tracer tracing.Tracer
+
+	// TracerFactory builds a tracer for the agent being run. It takes precedence
+	// over the global factory installed with tracing.SetTracerFactory and is
+	// ignored when Tracer is set. Tracers created by the factory are closed by
+	// the runner when the run finishes.
+	TracerFactory tracing.TracerFactory
+
 	// WorkflowName is the name of the workflow
 	WorkflowName string
 

@@ -56,3 +56,5 @@ Thumbs.db
 /debug
 /debug.test
 /coverage.txt 
+# Trace logs produced by the default file tracer and by tests
+trace_*.log

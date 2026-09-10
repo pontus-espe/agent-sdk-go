@@ -37,6 +37,32 @@ type ChatMessage struct {
 	ToolCallID string                `json:"tool_call_id,omitempty"`
 }
 
+// MarshalJSON serializes the message.
+//
+// An assistant message that only carries tool calls is sent without a content
+// field: OpenAI treats an empty string and an absent content the same way, but
+// stricter OpenAI-compatible APIs (Gemini) reject an empty text part with
+// 400 Bad Request.
+func (m ChatMessage) MarshalJSON() ([]byte, error) {
+	type chatMessageAlias ChatMessage
+
+	if m.Role == "assistant" && len(m.ToolCalls) > 0 && strings.TrimSpace(m.Content) == "" {
+		return json.Marshal(struct {
+			Role       string                `json:"role"`
+			Name       string                `json:"name,omitempty"`
+			ToolCalls  []ChatMessageToolCall `json:"tool_calls,omitempty"`
+			ToolCallID string                `json:"tool_call_id,omitempty"`
+		}{
+			Role:       m.Role,
+			Name:       m.Name,
+			ToolCalls:  m.ToolCalls,
+			ToolCallID: m.ToolCallID,
+		})
+	}
+
+	return json.Marshal(chatMessageAlias(m))
+}
+
 // ChatMessageToolCall represents a tool call in a chat message
 type ChatMessageToolCall struct {
 	ID       string                      `json:"id"`
@@ -60,7 +86,7 @@ type ChatTool struct {
 type ChatToolFunction struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
-	Parameters  map[string]interface{} `json:"parameters"`
+	Parameters  map[string]interface{} `json:"parameters,omitempty"`
 }
 
 // ChatCompletionRequest represents a request to the chat completions API
@@ -101,13 +127,18 @@ type ChatCompletionUsage struct {
 	TotalTokens      int `json:"total_tokens"`
 }
 
-// ErrorResponse represents an error response from the API
+// ErrorResponse represents an error response from the API.
+//
+// Code and Param are typed as json.RawMessage because OpenAI returns strings
+// while other OpenAI-compatible APIs (Gemini, for instance) return numbers.
+// Decoding them strictly used to fail and hid the actual error message.
 type ErrorResponse struct {
 	Error struct {
-		Message string `json:"message"`
-		Type    string `json:"type"`
-		Param   string `json:"param"`
-		Code    string `json:"code"`
+		Message string          `json:"message"`
+		Type    string          `json:"type"`
+		Status  string          `json:"status"`
+		Param   json.RawMessage `json:"param"`
+		Code    json.RawMessage `json:"code"`
 	} `json:"error"`
 }
 
@@ -621,9 +652,10 @@ func (m *Model) constructRequest(request *model.Request) (*ChatCompletionRequest
 
 		chatRequest.Tools = make([]ChatTool, 0, capacity)
 
-		// Add tools and handoffs
-		addToolsToRequest(chatRequest, request.Tools)
-		addHandoffToolsToRequest(chatRequest, request.Handoffs)
+		// Add tools and handoffs, adapting their schemas to the target API
+		schemaMode := m.Provider.GetSchemaCompatibility()
+		addToolsToRequest(chatRequest, request.Tools, schemaMode)
+		addHandoffToolsToRequest(chatRequest, request.Handoffs, schemaMode)
 	}
 
 	// Apply model settings if provided
@@ -815,13 +847,13 @@ func createToolResultMessage(message map[string]interface{}) *ChatMessage {
 }
 
 // addToolsToRequest adds tools to the chat request
-func addToolsToRequest(chatRequest *ChatCompletionRequest, tools []interface{}) {
+func addToolsToRequest(chatRequest *ChatCompletionRequest, tools []interface{}, schemaMode SchemaCompatibility) {
 	if len(tools) == 0 {
 		return
 	}
 
 	for _, tool := range tools {
-		chatTool := convertToolToChatTool(tool)
+		chatTool := convertToolToChatTool(tool, schemaMode)
 		if chatTool != nil {
 			chatRequest.Tools = append(chatRequest.Tools, *chatTool)
 		}
@@ -829,7 +861,7 @@ func addToolsToRequest(chatRequest *ChatCompletionRequest, tools []interface{}) 
 }
 
 // convertToolToChatTool converts a tool to a ChatTool
-func convertToolToChatTool(tool interface{}) *ChatTool {
+func convertToolToChatTool(tool interface{}, schemaMode SchemaCompatibility) *ChatTool {
 	if tool == nil {
 		return nil
 	}
@@ -873,13 +905,13 @@ func convertToolToChatTool(tool interface{}) *ChatTool {
 		Function: ChatToolFunction{
 			Name:        name,
 			Description: description,
-			Parameters:  parameters,
+			Parameters:  adaptToolSchema(parameters, schemaMode),
 		},
 	}
 }
 
 // addHandoffToolsToRequest adds handoff tools to the chat request
-func addHandoffToolsToRequest(chatRequest *ChatCompletionRequest, handoffs []interface{}) {
+func addHandoffToolsToRequest(chatRequest *ChatCompletionRequest, handoffs []interface{}, schemaMode SchemaCompatibility) {
 	if len(handoffs) == 0 {
 		return
 	}
@@ -891,12 +923,14 @@ func addHandoffToolsToRequest(chatRequest *ChatCompletionRequest, handoffs []int
 			if handoffTool["type"] == "function" && handoffTool["function"] != nil {
 				function := handoffTool["function"].(map[string]interface{})
 
+				parameters, _ := function["parameters"].(map[string]interface{})
+
 				chatTool := ChatTool{
 					Type: "function",
 					Function: ChatToolFunction{
 						Name:        function["name"].(string),
 						Description: function["description"].(string),
-						Parameters:  function["parameters"].(map[string]interface{}),
+						Parameters:  adaptToolSchema(parameters, schemaMode),
 					},
 				}
 
@@ -1108,10 +1142,21 @@ func (m *Model) handleError(response *http.Response) error {
 	// Try to parse the error
 	var errorResponse ErrorResponse
 	if err := json.Unmarshal(body, &errorResponse); err == nil && errorResponse.Error.Message != "" {
-		return fmt.Errorf("API error (%s): %s", errorResponse.Error.Type, errorResponse.Error.Message)
+		kind := errorResponse.Error.Type
+		if kind == "" {
+			kind = errorResponse.Error.Status
+		}
+		if kind == "" {
+			kind = response.Status
+		}
+		return fmt.Errorf("API error (%s): %s", kind, errorResponse.Error.Message)
 	}
 
-	// Fallback to status code
+	// Fallback to the status code, but keep the raw payload so the caller can
+	// see why the request was rejected
+	if len(body) > 0 {
+		return fmt.Errorf("API error: %s: %s", response.Status, strings.TrimSpace(string(body)))
+	}
 	return fmt.Errorf("API error: %s", response.Status)
 }
 

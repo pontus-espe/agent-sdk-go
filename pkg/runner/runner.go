@@ -136,16 +136,6 @@ func (r *Runner) RunStreaming(ctx context.Context, agent AgentType, opts *RunOpt
 			return
 		}
 
-		// Resolve the model
-		modelInstance, err := r.resolveModel(agent, opts.RunConfig)
-		if err != nil {
-			eventCh <- model.StreamEvent{
-				Type:  model.StreamEventTypeError,
-				Error: fmt.Errorf("failed to resolve model: %w", err),
-			}
-			return
-		}
-
 		// Variables to track consecutive tool calls
 		consecutiveToolCalls := 0
 
@@ -195,7 +185,19 @@ func (r *Runner) RunStreaming(ctx context.Context, agent AgentType, opts *RunOpt
 			}
 
 			// Record model request event
-			tracing.ModelRequest(ctx, currentAgent.Name, fmt.Sprintf("%v", agent.Model), request.Input, request.Tools)
+			tracing.ModelRequest(ctx, currentAgent.Name, fmt.Sprintf("%v", currentAgent.Model), request.Input, request.Tools)
+
+			// Resolve the model for the agent that is running this turn. This is
+			// done per turn because a handoff can switch to an agent that uses a
+			// different model or even a different provider.
+			modelInstance, err := r.resolveModel(currentAgent, opts.RunConfig)
+			if err != nil {
+				eventCh <- model.StreamEvent{
+					Type:  model.StreamEventTypeError,
+					Error: fmt.Errorf("failed to resolve model: %w", err),
+				}
+				return
+			}
 
 			// Stream the model response
 			modelStream, err := modelInstance.StreamResponse(ctx, request)
@@ -269,8 +271,8 @@ func (r *Runner) setupTracing(ctx context.Context, agent AgentType, input interf
 		return ctx, func() {}, nil
 	}
 
-	// Create tracer
-	tracer, err := tracing.TraceForAgent(agent.Name)
+	// Create the tracer for this run (custom implementation when configured)
+	tracer, err := r.createTracer(agent.Name, opts)
 	if err != nil {
 		// Log error but continue without tracing
 		fmt.Fprintf(os.Stderr, "Failed to create tracer: %v\n", err)
@@ -297,6 +299,27 @@ func (r *Runner) setupTracing(ctx context.Context, agent AgentType, input interf
 	}
 
 	return tracingCtx, cleanup, nil
+}
+
+// createTracer builds the tracer for a run.
+//
+// Resolution order:
+//  1. RunConfig.TracingConfig.Tracer - used as is and never closed by the runner
+//  2. RunConfig.TracingConfig.TracerFactory - a per-run factory
+//  3. tracing.TraceForAgent - the global factory or the default file tracer
+func (r *Runner) createTracer(agentName string, opts *RunOptions) (tracing.Tracer, error) {
+	if opts != nil && opts.RunConfig != nil && opts.RunConfig.TracingConfig != nil {
+		cfg := opts.RunConfig.TracingConfig
+		if cfg.Tracer != nil {
+			// The caller owns this tracer, so the runner must not close it
+			return tracing.KeepOpen(cfg.Tracer), nil
+		}
+		if cfg.TracerFactory != nil {
+			return cfg.TracerFactory(agentName)
+		}
+	}
+
+	return tracing.TraceForAgent(agentName)
 }
 
 // prepareModelSettings creates model settings for a request based on agent and run configuration
@@ -403,6 +426,9 @@ func (r *Runner) runAgentLoop(ctx context.Context, agent AgentType, input interf
 				consecutiveToolCalls = 0
 				currentAgent = nextAgent
 				currentInput = nextInput
+
+				// The result reports the agent that produced the final output
+				runResult.LastAgent = currentAgent
 				continue
 			}
 		}
@@ -716,7 +742,7 @@ func (r *Runner) processHandoff(ctx context.Context, currentAgent AgentType, cur
 	// Regular handoff logic for delegation
 	var handoffAgent AgentType
 	for _, h := range currentAgent.Handoffs {
-		if h.Name == handoffCall.AgentName {
+		if agentNameMatches(h.Name, handoffCall.AgentName) {
 			handoffAgent = h
 			break
 		}
@@ -1140,25 +1166,52 @@ func createToolResultForError(tc model.ToolCall, err error, turn int, idx int) i
 	}
 }
 
-// resolveModel resolves the model for the agent
+// resolveModel resolves the model for the agent.
+//
+// Resolution order:
+//  1. An agent with its own provider (agent.WithModelProvider) is always
+//     resolved with that provider, so different agents in the same workflow can
+//     run on different LLM providers.
+//  2. Otherwise the run configuration is used: runConfig.Model overrides the
+//     agent model and runConfig.ModelProvider resolves model names.
 func (r *Runner) resolveModel(agent AgentType, runConfig *RunConfig) (model.Model, error) {
-	// If runConfig.Model is set, it overrides agent.Model
+	// Determine which provider resolves this agent's model
+	provider := runConfig.ModelProvider
 	modelToUse := agent.Model
-	if runConfig.Model != nil {
+	if agent.ModelProvider != nil {
+		// The agent brings its own provider: its own model settings win so that
+		// a run-level override for another provider is not applied to it.
+		provider = agent.ModelProvider
+	} else if runConfig.Model != nil {
+		// If runConfig.Model is set, it overrides agent.Model
 		modelToUse = runConfig.Model
+	}
+
+	// If the model is a Model instance, use it directly
+	if m, ok := modelToUse.(model.Model); ok {
+		return m, nil
+	}
+
+	// A provider stored as the model (older SetModelProvider behaviour) resolves
+	// to that provider's default model
+	if p, ok := modelToUse.(model.Provider); ok {
+		return p.GetModel("")
 	}
 
 	// If model is a string, use the provider to resolve it
 	if modelName, ok := modelToUse.(string); ok {
-		return runConfig.ModelProvider.GetModel(modelName)
+		if provider == nil {
+			return nil, fmt.Errorf("no model provider available to resolve model %q for agent %s", modelName, agent.Name)
+		}
+		return provider.GetModel(modelName)
 	}
 
-	// If model is a Model instance, use it directly
-	if model, ok := modelToUse.(model.Model); ok {
-		return model, nil
+	// No model configured, but the agent has a provider: use its default model
+	if modelToUse == nil && provider != nil {
+		return provider.GetModel("")
 	}
 
-	return nil, fmt.Errorf("invalid model type: %T", modelToUse)
+	return nil, fmt.Errorf("invalid model type for agent %s: %T", agent.Name, modelToUse)
 }
 
 // prepareTools prepares tools for the model request
@@ -1306,7 +1359,7 @@ func (r *Runner) prepareHandoffs(handoffs []AgentType) []interface{} {
 	// Format them as tools so the model can call them directly
 	result := make([]interface{}, len(handoffs))
 	for i, h := range handoffs {
-		handoffToolName := fmt.Sprintf("handoff_to_%s", h.Name)
+		handoffToolName := handoffToolNameFor(h.Name)
 
 		result[i] = map[string]interface{}{
 			"type": "function",
@@ -2111,7 +2164,7 @@ func (r *Runner) handleHandoff(
 	// Regular handoff logic for delegation
 	var handoffAgent AgentType
 	for _, h := range currentAgent.Handoffs {
-		if h.Name == handoffCall.AgentName {
+		if agentNameMatches(h.Name, handoffCall.AgentName) {
 			handoffAgent = h
 			break
 		}
@@ -2234,7 +2287,7 @@ func (r *Runner) generateHandoffTools(handoffs []AgentType) []interface{} {
 		tool := map[string]interface{}{
 			"type": "function",
 			"function": map[string]interface{}{
-				"name":        fmt.Sprintf("handoff_to_%s", agent.Name),
+				"name":        handoffToolNameFor(agent.Name),
 				"description": fmt.Sprintf("Handoff to %s agent", agent.Name),
 				"parameters": map[string]interface{}{
 					"type": "object",

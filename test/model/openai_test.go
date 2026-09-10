@@ -36,7 +36,7 @@ func TestOpenAIProvider(t *testing.T) {
 	t.Run("SetBaseURL", func(t *testing.T) {
 		provider := openai.NewProvider("test-key")
 		provider = provider.SetBaseURL("https://test.openai.com/v1")
-		assert.Equal(t, "https://test.openai.com/v1", provider.BaseURL)
+		assert.Equal(t, "https://test.openai.com/v1", provider.GetBaseURL())
 	})
 
 	t.Run("WithDefaultModel", func(t *testing.T) {

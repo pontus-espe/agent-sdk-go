@@ -5,8 +5,8 @@
 <div align="center">
   <p><strong>Build, deploy, and scale AI agents with ease</strong></p>
   
-  <a href="https://go-agent.org"><img src="https://img.shields.io/badge/website-go--agent.org-blue?style=for-the-badge" alt="Website" /></a>
-  <a href="https://go-agent.org/#waitlist"><img src="https://img.shields.io/badge/Cloud_Waitlist-Sign_Up-4285F4?style=for-the-badge" alt="Cloud Waitlist" /></a>
+  <a href="https://pontus-espe.github.io/agent-sdk-go/"><img src="https://img.shields.io/badge/docs-github_pages-blue?style=for-the-badge" alt="Documentation" /></a>
+  <a href="https://pkg.go.dev/github.com/pontus-devoteam/agent-sdk-go"><img src="https://img.shields.io/badge/api_reference-pkg.go.dev-00ADD8?style=for-the-badge" alt="API Reference" /></a>
   
 </div>
 
@@ -17,18 +17,19 @@
 <p align="center">
     <a href="https://github.com/pontus-devoteam/agent-sdk-go/actions/workflows/code-quality.yml"><img src="https://github.com/pontus-devoteam/agent-sdk-go/actions/workflows/code-quality.yml/badge.svg" alt="Code Quality"></a>
     <a href="https://goreportcard.com/report/github.com/pontus-devoteam/agent-sdk-go"><img src="https://goreportcard.com/badge/github.com/pontus-devoteam/agent-sdk-go" alt="Go Report Card"></a>
-    <a href="https://github.com/pontus-devoteam/agent-sdk-go/blob/main/go.mod"><img src="https://img.shields.io/github/go-mod/go-version/pontus-devoteam/agent-sdk-go" alt="Go Version"></a>
+    <a href="https://github.com/pontus-devoteam/agent-sdk-go/blob/master/go.mod"><img src="https://img.shields.io/github/go-mod/go-version/pontus-devoteam/agent-sdk-go" alt="Go Version"></a>
     <a href="https://pkg.go.dev/github.com/pontus-devoteam/agent-sdk-go"><img src="https://pkg.go.dev/badge/github.com/pontus-devoteam/agent-sdk-go.svg" alt="PkgGoDev"></a><br>
     <a href="https://github.com/pontus-devoteam/agent-sdk-go/actions/workflows/codeql-analysis.yml"><img src="https://github.com/pontus-devoteam/agent-sdk-go/actions/workflows/codeql-analysis.yml/badge.svg" alt="CodeQL"></a>
-    <a href="https://github.com/pontus-devoteam/agent-sdk-go/blob/main/LICENSE"><img src="https://img.shields.io/github/license/pontus-devoteam/agent-sdk-go" alt="License"></a>
+    <a href="https://github.com/pontus-devoteam/agent-sdk-go/blob/master/LICENSE"><img src="https://img.shields.io/github/license/pontus-devoteam/agent-sdk-go" alt="License"></a>
     <a href="https://github.com/pontus-devoteam/agent-sdk-go/stargazers"><img src="https://img.shields.io/github/stars/pontus-devoteam/agent-sdk-go" alt="Stars"></a>
     <a href="https://github.com/pontus-devoteam/agent-sdk-go/graphs/contributors"><img src="https://img.shields.io/github/contributors/pontus-devoteam/agent-sdk-go" alt="Contributors"></a>
-    <a href="https://github.com/pontus-devoteam/agent-sdk-go/commits/main"><img src="https://img.shields.io/github/last-commit/pontus-devoteam/agent-sdk-go" alt="Last Commit"></a>
+    <a href="https://github.com/pontus-devoteam/agent-sdk-go/commits/master"><img src="https://img.shields.io/github/last-commit/pontus-devoteam/agent-sdk-go" alt="Last Commit"></a>
 </p>
 
 <p align="center">
-  <a href="https://go-agent.org/#waitlist">☁️ Cloud Waitlist</a> •
-  <a href="https://github.com/pontus-devoteam/agent-sdk-go/blob/main/LICENSE">📜 License</a>
+  <a href="https://pontus-espe.github.io/agent-sdk-go/">📖 Documentation</a> •
+  <a href="https://github.com/pontus-espe/agent-sdk-go/issues">🐛 Issues</a> •
+  <a href="https://github.com/pontus-espe/agent-sdk-go/blob/master/LICENSE">📜 License</a>
 </p>
 
 <p align="center">
@@ -43,6 +44,7 @@
 - [Features](#-features)
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
+- [Documentation](#-documentation)
 - [Provider Setup](#-provider-setup)
 - [Key Components](#-key-components)
   - [Agent](#agent)
@@ -51,6 +53,8 @@
   - [Model Providers](#model-providers)
 - [Advanced Features](#-advanced-features)
   - [Multi-Agent Workflows](#multi-agent-workflows)
+  - [Multiple Providers in One Workflow](#multiple-providers-in-one-workflow)
+  - [MCP Support](#mcp-support)
   - [Tracing](#tracing)
   - [Structured Output](#structured-output)
   - [Streaming](#streaming)
@@ -58,7 +62,6 @@
   - [Workflow State Management](#workflow-state-management)
   - [Bidirectional Agent Flow](#bidirectional-agent-flow)
 - [Examples](#-examples)
-- [Cloud Support](#-cloud-support)
 - [Development](#-development)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -70,18 +73,40 @@
 
 Agent SDK Go provides a comprehensive framework for building AI agents in Go. It allows you to create agents that can use tools, perform handoffs to other specialized agents, and produce structured output - all while supporting multiple LLM providers.
 
-**Visit [go-agent.org](https://go-agent.org) for comprehensive documentation, examples, and cloud service waitlist.**
+**Full documentation lives at [pontus-espe.github.io/agent-sdk-go](https://pontus-espe.github.io/agent-sdk-go/), and the API reference is on [pkg.go.dev](https://pkg.go.dev/github.com/pontus-devoteam/agent-sdk-go).**
 
 ## 🌟 Features
 
-- ✅ **Multiple LLM Provider Support** - Support for OpenAI, Anthropic Claude, and LM Studio
+- ✅ **Multiple LLM Provider Support** - OpenAI, Azure OpenAI, Gemini, Anthropic Claude, Amazon Bedrock and LM Studio
+- ✅ **Mix Providers in One Workflow** - Every agent can run on its own provider and model
 - ✅ **Tool Integration** - Call Go functions directly from your LLM
+- ✅ **MCP Support** - Attach the tools of any MCP server over stdio or HTTP
 - ✅ **Agent Handoffs** - Create complex multi-agent workflows with specialized agents
 - ✅ **Structured Output** - Parse responses into Go structs
 - ✅ **Streaming** - Get real-time streaming responses
-- ✅ **Tracing & Monitoring** - Debug your agent flows
+- ✅ **Pluggable Tracing** - Keep the default file trace or ship events to your own stack
 - ✅ **OpenAI Compatibility** - Compatible with OpenAI tool definitions and API
 - ✅ **Workflow State Management** - Persist and manage state between agent executions
+- ✅ **No Third Party Dependencies** - Standard library only at runtime
+
+## 📖 Documentation
+
+Guides live at
+**[pontus-espe.github.io/agent-sdk-go](https://pontus-espe.github.io/agent-sdk-go/)**
+and are written in [`docs/`](./docs) in this repository:
+
+| Guide | What it covers |
+| --- | --- |
+| [Getting started](https://pontus-espe.github.io/agent-sdk-go/getting-started) | Installation, your first agent, tools, streaming |
+| [Providers](https://pontus-espe.github.io/agent-sdk-go/providers) | OpenAI, Azure OpenAI, Gemini, Anthropic, Amazon Bedrock, LM Studio |
+| [Multi-provider workflows](https://pontus-espe.github.io/agent-sdk-go/multi-provider) | Different LLM providers inside one multi-agent workflow |
+| [Handoffs](https://pontus-espe.github.io/agent-sdk-go/handoffs) | Multi-agent workflows, agent naming rules, bidirectional flow |
+| [MCP](https://pontus-espe.github.io/agent-sdk-go/mcp) | Using MCP servers as agent tools |
+| [Tracing](https://pontus-espe.github.io/agent-sdk-go/tracing) | The default file tracer and custom implementations |
+| [Troubleshooting](https://pontus-espe.github.io/agent-sdk-go/troubleshooting) | Common API errors and how to fix them |
+
+The API reference is generated from the source on
+[pkg.go.dev](https://pkg.go.dev/github.com/pontus-devoteam/agent-sdk-go).
 
 ## 📦 Installation
 
@@ -244,6 +269,82 @@ To use the OpenAI provider:
    provider.SetDefaultModel("gpt-3.5-turbo")  // or any other OpenAI model
    ```
 
+### Azure OpenAI Setup
+
+<details>
+<summary>Click to expand setup instructions</summary>
+
+To use Azure OpenAI:
+
+```go
+provider := openai.NewProvider(os.Getenv("AZURE_OPENAI_API_KEY"))
+provider.SetBaseURL("https://<your-resource>.openai.azure.com")
+provider.SetAPIType(openai.APITypeAzure)    // or APITypeAzureAD for Entra ID tokens
+provider.SetAPIVersion("2024-10-21")
+provider.SetDefaultModel("<your-deployment-name>")
+```
+
+For Azure the model name is the **deployment** name. See
+[examples/azure_openai_example](./examples/azure_openai_example).
+
+</details>
+
+### Gemini Setup
+
+<details>
+<summary>Click to expand setup instructions</summary>
+
+Gemini exposes an OpenAI compatible endpoint. It is stricter than OpenAI about
+tool schemas, so the provider adapts them automatically:
+
+```go
+provider := openai.NewGeminiProvider(os.Getenv("GEMINI_API_KEY"))
+provider.SetDefaultModel("gemini-2.5-flash")
+```
+
+which is the same as:
+
+```go
+provider := openai.NewProvider(os.Getenv("GEMINI_API_KEY"))
+provider.SetBaseURL(openai.GeminiBaseURL)
+provider.SetSchemaCompatibility(openai.SchemaCompatibilityStrict)
+```
+
+See [examples/gemini_example](./examples/gemini_example) and the
+[providers guide](https://pontus-espe.github.io/agent-sdk-go/providers#gemini).
+
+</details>
+
+### Amazon Bedrock Setup
+
+<details>
+<summary>Click to expand setup instructions</summary>
+
+The Bedrock provider uses the Converse API, so every model hosted on Bedrock -
+Anthropic Claude, Amazon Nova, Meta Llama, Mistral and others - works with the
+same code, including tool calling.
+
+1. **Configure credentials** (standard AWS environment variables)
+   ```bash
+   export AWS_ACCESS_KEY_ID=...
+   export AWS_SECRET_ACCESS_KEY=...
+   export AWS_REGION=eu-north-1
+   ```
+
+2. **Configure the Provider**
+   ```go
+   provider := bedrock.NewProvider("eu-north-1")
+   provider.SetDefaultModel("anthropic.claude-3-5-sonnet-20241022-v2:0")
+
+   // Credentials can also be set explicitly
+   provider.WithCredentials(accessKeyID, secretAccessKey, sessionToken)
+   ```
+
+Requests are signed with AWS Signature Version 4 using only the standard library.
+See [examples/bedrock_example](./examples/bedrock_example).
+
+</details>
+
 ### Anthropic Setup
 
 <details>
@@ -366,14 +467,26 @@ openaiProvider.SetDefaultModel("gpt-4")
 anthropicProvider := anthropic.NewProvider("your-anthropic-api-key")
 anthropicProvider.SetDefaultModel("claude-3-haiku-20240307")
 
+// Create a provider for Gemini (OpenAI compatible endpoint)
+geminiProvider := openai.NewGeminiProvider("your-gemini-api-key")
+geminiProvider.SetDefaultModel("gemini-2.5-flash")
+
+// Create a provider for Amazon Bedrock
+bedrockProvider := bedrock.NewProvider("eu-north-1")
+bedrockProvider.SetDefaultModel("anthropic.claude-3-5-sonnet-20241022-v2:0")
+
 // Create a provider for LM Studio
 lmStudioProvider := lmstudio.NewProvider()
 lmStudioProvider.SetBaseURL("http://127.0.0.1:1234/v1")
 lmStudioProvider.SetDefaultModel("gemma-3-4b-it")
 
-// Set a provider as the default provider
+// Set a provider as the default provider for every agent
 runner := runner.NewRunner()
-runner.WithDefaultProvider(openaiProvider) // or anthropicProvider or lmStudioProvider
+runner.WithDefaultProvider(openaiProvider)
+
+// Or give a single agent its own provider
+researcher.WithModelProvider(anthropicProvider)
+researcher.WithModel("claude-sonnet-4-20250514")
 ```
 
 ## 🔧 Advanced Features
@@ -412,6 +525,14 @@ result, err := runner.RunSync(frontendAgent, &runner.RunOptions{
     MaxTurns: 20,
 })
 ```
+
+Handoffs are exposed to the model as tools named `handoff_to_<agent name>`.
+Model APIs only accept function names matching `^[a-zA-Z0-9_-]+$`, so agent names
+are sanitized automatically: an agent called `Weather Agent` is offered as
+`handoff_to_Weather_Agent` and the answer is resolved back to the original agent.
+Use `agent.ValidateName` if you want to check names up front.
+
+After a handoff, `result.LastAgent` is the agent that produced the final output.
 
 See the complete example in [examples/multi_agent_example](./examples/multi_agent_example).
 
@@ -457,13 +578,92 @@ See the complete example in [examples/bidirectional_flow_example](./examples/bid
 
 </details>
 
+### Multiple Providers in One Workflow
+
+<details>
+<summary>Run every agent on the provider that fits it best</summary>
+
+Each agent can carry its own provider. A handoff then switches model and provider
+together, in both the synchronous and the streaming runner.
+
+```go
+researcher := agent.NewAgent("Researcher", "You research topics in depth.")
+researcher.WithModelProvider(anthropicProvider)
+researcher.WithModel("claude-sonnet-4-20250514")
+
+summarizer := agent.NewAgent("Summarizer", "You write short summaries.")
+summarizer.WithModelProvider(geminiProvider)
+summarizer.WithModel("gemini-2.5-flash")
+
+triage := agent.NewAgent("Triage", "You route work to specialists.")
+triage.WithModelProvider(openaiProvider)
+triage.WithModel("gpt-4o-mini")
+triage.WithHandoffs(researcher, summarizer)
+
+r := runner.NewRunner()
+r.WithDefaultProvider(openaiProvider) // fallback for agents without their own
+
+result, err := r.RunSync(triage, &runner.RunOptions{
+    Input:    "Research X, then summarize it in three bullets.",
+    MaxTurns: 10,
+})
+```
+
+Agents without their own provider keep using the runner provider. See
+[examples/multi_provider_example](./examples/multi_provider_example) and the
+[multi-provider guide](https://pontus-espe.github.io/agent-sdk-go/multi-provider).
+
+</details>
+
+### MCP Support
+
+<details>
+<summary>Use the tools of any MCP server</summary>
+
+Tools exposed by a Model Context Protocol server implement `tool.Tool`, so they
+are attached to an agent like any local tool. Both the stdio and the HTTP
+transport are supported.
+
+```go
+// Local server as a child process
+client, err := mcp.NewStdioClient(mcp.StdioConfig{
+    Command: "npx",
+    Args:    []string{"-y", "@modelcontextprotocol/server-filesystem", "/tmp"},
+})
+if err != nil {
+    log.Fatal(err)
+}
+defer client.Close()
+
+// Or a remote server
+// client, err := mcp.NewHTTPClient(mcp.HTTPConfig{
+//     URL:     "https://mcp.example.com/mcp",
+//     Headers: map[string]string{"Authorization": "Bearer " + token},
+// })
+
+tools, err := client.ListTools(ctx)
+if err != nil {
+    log.Fatal(err)
+}
+
+assistant.WithTools(tools...)
+```
+
+The handshake runs automatically, tool listings follow pagination, and server
+side tool names are sanitized for the model API while calls keep the original
+name. See [examples/mcp_example](./examples/mcp_example) and the
+[MCP guide](https://pontus-espe.github.io/agent-sdk-go/mcp).
+
+</details>
+
 ### Tracing
 
 <details>
-<summary>Debug your agent workflows with tracing</summary>
+<summary>Debug your agent workflows and ship events to your own stack</summary>
+
+Trace events are written as JSON lines to `trace_<agent>.log` by default.
 
 ```go
-// Run with tracing enabled
 result, err := runner.RunSync(agent, &runner.RunOptions{
     Input: "Hello, world!",
     RunConfig: &runner.RunConfig{
@@ -474,6 +674,42 @@ result, err := runner.RunSync(agent, &runner.RunOptions{
     },
 })
 ```
+
+Any implementation of `tracing.Tracer` can replace the default file tracer, for
+Kafka, Pulsar, syslog, Datadog, OpenTelemetry or an internal service:
+
+```go
+// One tracer for this run (owned by you: the runner flushes but never closes it)
+RunConfig: &runner.RunConfig{
+    TracingConfig: &runner.TracingConfig{
+        Tracer: myTracer,
+    },
+}
+
+// Or one tracer per agent
+RunConfig: &runner.RunConfig{
+    TracingConfig: &runner.TracingConfig{
+        TracerFactory: func(agentName string) (tracing.Tracer, error) {
+            return newTracerFor(agentName)
+        },
+    },
+}
+
+// Or globally, for every run
+tracing.SetTracerFactory(func(agentName string) (tracing.Tracer, error) {
+    file, err := tracing.NewFileTracer(agentName)
+    if err != nil {
+        return nil, err
+    }
+    // Keep the file trace and also ship events elsewhere
+    return tracing.NewMultiTracer(file, tracing.NewWriterTracer(os.Stdout)), nil
+})
+```
+
+Built in tracers: `FileTracer`, `WriterTracer`, `FuncTracer`, `MultiTracer`,
+`NoopTracer` and the `KeepOpen` wrapper. See
+[examples/custom_tracer_example](./examples/custom_tracer_example) and the
+[tracing guide](https://pontus-espe.github.io/agent-sdk-go/tracing).
 
 </details>
 
@@ -617,7 +853,7 @@ result, err := workflowRunner.RunWorkflow(context.Background(), agent, &runner.R
 })
 ```
 
-See the complete example in [examples/workflow_example](./examples/workflow_example).
+See the complete example in [examples/openai_advanced_workflow](./examples/openai_advanced_workflow).
 </details>
 
 ## 📚 Examples
@@ -633,7 +869,13 @@ The repository includes several examples to help you get started:
 | [Anthropic Handoff Example](./examples/anthropic_handoff_example) | Shows how to implement agent handoffs with Anthropic Claude models |
 | [Bidirectional Flow Example](./examples/bidirectional_flow_example) | Demonstrates bidirectional agent communication with task delegation and return handoffs |
 | [TypeScript Code Review Example](./examples/typescript_code_review_example) | Shows a practical application with specialized code review agents that collaborate using bidirectional handoffs |
-| [Workflow Example](./examples/workflow_example) | Demonstrates advanced workflow management with state persistence between agent executions |
+| [Azure OpenAI Example](./examples/azure_openai_example) | Runs an agent against an Azure OpenAI deployment |
+| [Gemini Example](./examples/gemini_example) | Runs an agent on Gemini through its OpenAI compatible endpoint, with tool calling |
+| [Bedrock Example](./examples/bedrock_example) | Runs an agent on Amazon Bedrock using the Converse API |
+| [Multi-Provider Example](./examples/multi_provider_example) | One workflow where each agent runs on a different LLM provider |
+| [MCP Example](./examples/mcp_example) | Gives an agent the tools of an MCP server over stdio or HTTP |
+| [Custom Tracer Example](./examples/custom_tracer_example) | Replaces the default file tracer with a custom implementation |
+| [Advanced Workflow Example](./examples/openai_advanced_workflow) | Demonstrates advanced workflow management with state persistence between agent executions |
 
 ### Running Examples with a Local LLM
 
@@ -756,27 +998,15 @@ Contributions are welcome! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for d
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/pontus-devoteam/agent-sdk-go/blob/main/LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/pontus-devoteam/agent-sdk-go/blob/master/LICENSE) file for details.
 
 ## 🙏 Acknowledgements
 
 This project is inspired by [OpenAI's Assistants API](https://platform.openai.com/docs/assistants/overview) and [OpenAI's Python Agent SDK](https://github.com/openai/openai-agents-py), with the goal of providing similar capabilities in Go while being compatible with local LLMs.
 
-## ☁️ Cloud Support
-
-For production deployments, we're developing a fully managed cloud service. Join our waitlist to be among the first to access:
-
-- **Managed Agent Deployment** - Deploy agents without infrastructure hassle
-- **Horizontal Scaling** - Handle any traffic volume
-- **Observability & Monitoring** - Track performance and usage
-- **Cost Optimization** - Pay only for what you use
-- **Enterprise Security** - SOC2 compliance and data protection
-
-**[Sign up for the Cloud Waitlist →](https://go-agent.org/#waitlist)**
-
 ## 👥 Community & Support
 
-- **Website**: [go-agent.org](https://go-agent.org)
-- **GitHub Issues**: [Report bugs or request features](https://github.com/pontus-devoteam/agent-sdk-go/issues)
-- **Discussions**: [Join the conversation](https://github.com/pontus-devoteam/agent-sdk-go/discussions)
-- **Waitlist**: [Join the cloud service waitlist](https://go-agent.org/#waitlist) 
+- **Documentation**: [pontus-espe.github.io/agent-sdk-go](https://pontus-espe.github.io/agent-sdk-go/)
+- **API Reference**: [pkg.go.dev](https://pkg.go.dev/github.com/pontus-devoteam/agent-sdk-go)
+- **GitHub Issues**: [Report bugs or request features](https://github.com/pontus-espe/agent-sdk-go/issues)
+- **Discussions**: [Join the conversation](https://github.com/pontus-espe/agent-sdk-go/discussions)

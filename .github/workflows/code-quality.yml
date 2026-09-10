@@ -10,12 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.23'
+          go-version: '1.24'
 
       - name: Fix Go module setup
         run: |
@@ -37,7 +37,7 @@ jobs:
           
           run:
             timeout: 5m
-            go: '1.23'
+            go: '1.24'
             tests: true
             allow-parallel-runners: true
           
@@ -79,12 +79,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.23'
+          go-version: '1.24'
 
       - name: Fix Go module setup
         run: |
@@ -113,12 +113,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.23'
+          go-version: '1.24'
 
       - name: Fix Go module setup
         run: |

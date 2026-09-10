@@ -5,7 +5,8 @@ before:
     - go mod tidy
 
 builds:
-  - env:
+  - id: default
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
@@ -20,6 +21,8 @@ builds:
 
 archives:
   - id: default
+    ids:
+      - default
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
@@ -27,27 +30,27 @@ archives:
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
-    builds:
-      - default
     files:
       - LICENSE
       - README.md
-      - examples/**/*
-      - pkg/**/*
-      - cmd/**/*
       - go.mod
       - go.sum
-    format: tar.gz
+      - examples/**/*
+      - pkg/**/*
+      - docs/**/*
+    formats:
+      - tar.gz
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
 
 checksum:
   name_template: 'checksums.txt'
   algorithm: sha256
 
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 
 changelog:
   sort: asc
@@ -60,7 +63,7 @@ changelog:
 
 release:
   github:
-    owner: pontus-devoteam
+    owner: pontus-espe
     name: agent-sdk-go
   draft: false
   prerelease: auto
@@ -71,4 +74,7 @@ release:
     Commit: {{ .Commit }}
     Date: {{ .Date }}
 
-    For more information, visit [pontus-devoteam/agent-sdk-go](https://github.com/pontus-devoteam/agent-sdk-go) 
+    Documentation: https://pontus-espe.github.io/agent-sdk-go/
+    API reference: https://pkg.go.dev/github.com/pontus-devoteam/agent-sdk-go
+
+    For more information, visit [pontus-espe/agent-sdk-go](https://github.com/pontus-espe/agent-sdk-go)

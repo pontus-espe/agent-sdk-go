@@ -1,16 +1,15 @@
 # Go Code Quality Guidelines
 
-This document outlines guidelines to maintain a high Go Report Card score and ensure code quality in the Agent SDK Go project.
-
-## Go Report Card
-
-[Go Report Card](https://goreportcard.com/) is a service that scans Go code and assigns a grade based on code quality metrics. Our goal is to maintain an A+ rating.
-
-Current status: [![Go Report Card](https://goreportcard.com/badge/github.com/pontus-devoteam/agent-sdk-go)](https://goreportcard.com/report/github.com/pontus-devoteam/agent-sdk-go)
+This document outlines the guidelines that keep the Agent SDK Go code base
+consistent and maintainable.
 
 ## Quality Checks
 
-Go Report Card evaluates several aspects of code quality:
+The `Code Quality` workflow runs golangci-lint (errcheck, govet, staticcheck),
+gosec and the test suite with coverage on every push and pull request. The `CI`
+workflow additionally enforces formatting and runs `go vet` and the build.
+
+The checks cover:
 
 ### 1. Code Formatting (`gofmt`)
 
@@ -20,7 +19,7 @@ All code must be formatted according to Go standards using `gofmt`.
 - Configure your editor to run `gofmt` on save
 - The CI workflow will auto-format code that doesn't meet standards
 
-### 2. Code Style (`golint`)
+### 2. Code Style (`staticcheck`)
 
 Follow Go style guidelines:
 
@@ -72,12 +71,13 @@ Ensure files include the appropriate license header.
 We use several tools to maintain code quality:
 
 1. **Local Development**:
-   - Use `./scripts/fix_goreportcard.sh` before committing
+   - Run `gofmt -s -w .` and `go vet ./...` before committing
+   - `./scripts/check_all.sh` runs the same checks the CI pipeline runs
    - Configure editor integrations with these tools
 
 2. **CI Pipeline**:
-   - The `goreportcard-fixer.yml` workflow checks and fixes common issues
-   - The `code-quality.yml` workflow ensures code meets standards
+   - The `ci.yml` workflow checks formatting, vet, build and tests
+   - The `code-quality.yml` workflow runs golangci-lint, gosec and coverage
 
 3. **Pre-commit Hooks** (recommended):
    - Install [pre-commit](https://pre-commit.com/)
@@ -141,5 +141,6 @@ func divide(a, b int) (int, error) {
 
 - [Effective Go](https://golang.org/doc/effective_go)
 - [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments)
-- [Go Report Card](https://goreportcard.com/)
+- [golangci-lint](https://golangci-lint.run/)
+- [gosec](https://github.com/securego/gosec)
 - [Go Proverbs](https://go-proverbs.github.io/) 

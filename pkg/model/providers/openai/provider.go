@@ -62,11 +62,11 @@ type Provider struct {
 	apiType             APIType
 	apiVersion          string
 	schemaCompatibility SchemaCompatibility
-	mu            sync.RWMutex
-	requestCount  int
-	tokenCount    int
-	lastResetTime time.Time
-	rateLimiter   *time.Ticker
+	mu                  sync.RWMutex
+	requestCount        int
+	tokenCount          int
+	lastResetTime       time.Time
+	rateLimiter         *time.Ticker
 }
 
 // NewOpenAIProvider creates a new Provider with default settings

@@ -403,7 +403,7 @@ func getTypeSchema(t reflect.Type) map[string]interface{} {
 	schema := make(map[string]interface{})
 
 	// Handle pointers
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		elemSchema := getTypeSchema(t.Elem())
 
 		// For pointers, the field is nullable

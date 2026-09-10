@@ -16,8 +16,6 @@ import (
 	"time"
 
 	"github.com/pontus-devoteam/agent-sdk-go/pkg/model"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 // Model implements the model.Model interface for Anthropic
@@ -94,7 +92,7 @@ type AnthropicStreamResponse struct {
 type AnthropicDelta struct {
 	Type         string `json:"type"`
 	Text         string `json:"text,omitempty"`
-	PartialJson  string `json:"partial_json,omitempty"`
+	PartialJSON  string `json:"partial_json,omitempty"`
 	StopReason   string `json:"stop_reason,omitempty"`
 	StopSequence string `json:"stop_sequence,omitempty"`
 }
@@ -459,7 +457,7 @@ func (m *Model) streamResponseOnce(ctx context.Context, request *model.Request, 
 						Content: streamResp.Delta.Text,
 					}
 				case "input_json_delta":
-					currentToolCall.RawParameter.WriteString(streamResp.Delta.PartialJson)
+					currentToolCall.RawParameter.WriteString(streamResp.Delta.PartialJSON)
 				}
 			}
 			continue
@@ -497,17 +495,13 @@ func (m *Model) streamResponseOnce(ctx context.Context, request *model.Request, 
 							ToolCall: currentToolCall,
 						}
 					}
-					break
-				default:
-					// End of message
-					break
 				}
 			}
 			continue
 
 		case "message_stop":
-			// Message stop event
-			break
+			// Message stop event: the reader loop ends when the stream closes
+			continue
 
 		case "error":
 			// Error event
@@ -646,7 +640,7 @@ func (m *Model) constructRequest(request *model.Request) (*AnthropicMessageReque
 
 // addHandoffToolsToRequest adds handoff tools to the request
 func (m *Model) addHandoffToolsToRequest(request *model.Request, tools *[]AnthropicTool) error {
-	if request.Handoffs == nil || len(request.Handoffs) == 0 {
+	if len(request.Handoffs) == 0 {
 		return nil
 	}
 
@@ -1051,14 +1045,6 @@ func (m *Model) checkIfHandoffCall(toolCall *model.ToolCall) (*model.HandoffCall
 	return nil, false
 }
 
-// title converts a string to title case (first letter of each word capitalized)
-// This is a replacement for cases.Title(language.Und, cases.NoLower).String()
-func title(s string) string {
-	// Initialize a case.Caser
-	c := cases.Title(language.Und, cases.NoLower)
-	return c.String(s)
-}
-
 // handleError handles an error response from the API
 func (m *Model) handleError(response *http.Response) error {
 	// Read the response body
@@ -1104,38 +1090,4 @@ func calculateBackoff(attempt int, baseDelay time.Duration) time.Duration {
 	}
 
 	return time.Duration(backoff)
-}
-
-// generateID generates a random ID string
-func generateID() string {
-	b := make([]byte, 16)
-	_, err := rand.Read(b)
-	if err != nil {
-		return fmt.Sprintf("id_%d", time.Now().UnixNano())
-	}
-	return fmt.Sprintf("id_%x", b)
-}
-
-// formatToolResultContent formats the tool result content as a JSON string
-func formatToolResultContent(content interface{}) string {
-	if content == nil {
-		return "null"
-	}
-
-	switch v := content.(type) {
-	case string:
-		// For string content, quote it properly
-		bytes, err := json.Marshal(v)
-		if err != nil {
-			return fmt.Sprintf(`"%v"`, v)
-		}
-		return string(bytes)
-	default:
-		// For other types, convert to JSON
-		bytes, err := json.Marshal(v)
-		if err != nil {
-			return fmt.Sprintf(`"%v"`, v)
-		}
-		return string(bytes)
-	}
 }

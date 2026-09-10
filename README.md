@@ -15,15 +15,15 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/pontus-devoteam/agent-sdk-go/actions/workflows/code-quality.yml"><img src="https://github.com/pontus-devoteam/agent-sdk-go/actions/workflows/code-quality.yml/badge.svg" alt="Code Quality"></a>
-    <a href="https://goreportcard.com/report/github.com/pontus-devoteam/agent-sdk-go"><img src="https://goreportcard.com/badge/github.com/pontus-devoteam/agent-sdk-go" alt="Go Report Card"></a>
-    <a href="https://github.com/pontus-devoteam/agent-sdk-go/blob/master/go.mod"><img src="https://img.shields.io/github/go-mod/go-version/pontus-devoteam/agent-sdk-go" alt="Go Version"></a>
+    <a href="https://github.com/pontus-espe/agent-sdk-go/actions/workflows/code-quality.yml"><img src="https://github.com/pontus-espe/agent-sdk-go/actions/workflows/code-quality.yml/badge.svg" alt="Code Quality"></a>
+    <a href="https://github.com/pontus-espe/agent-sdk-go/actions/workflows/ci.yml"><img src="https://github.com/pontus-espe/agent-sdk-go/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+    <a href="https://github.com/pontus-espe/agent-sdk-go/blob/master/go.mod"><img src="https://img.shields.io/github/go-mod/go-version/pontus-espe/agent-sdk-go" alt="Go Version"></a>
     <a href="https://pkg.go.dev/github.com/pontus-devoteam/agent-sdk-go"><img src="https://pkg.go.dev/badge/github.com/pontus-devoteam/agent-sdk-go.svg" alt="PkgGoDev"></a><br>
-    <a href="https://github.com/pontus-devoteam/agent-sdk-go/actions/workflows/codeql-analysis.yml"><img src="https://github.com/pontus-devoteam/agent-sdk-go/actions/workflows/codeql-analysis.yml/badge.svg" alt="CodeQL"></a>
-    <a href="https://github.com/pontus-devoteam/agent-sdk-go/blob/master/LICENSE"><img src="https://img.shields.io/github/license/pontus-devoteam/agent-sdk-go" alt="License"></a>
-    <a href="https://github.com/pontus-devoteam/agent-sdk-go/stargazers"><img src="https://img.shields.io/github/stars/pontus-devoteam/agent-sdk-go" alt="Stars"></a>
-    <a href="https://github.com/pontus-devoteam/agent-sdk-go/graphs/contributors"><img src="https://img.shields.io/github/contributors/pontus-devoteam/agent-sdk-go" alt="Contributors"></a>
-    <a href="https://github.com/pontus-devoteam/agent-sdk-go/commits/master"><img src="https://img.shields.io/github/last-commit/pontus-devoteam/agent-sdk-go" alt="Last Commit"></a>
+    <a href="https://github.com/pontus-espe/agent-sdk-go/actions/workflows/codeql-analysis.yml"><img src="https://github.com/pontus-espe/agent-sdk-go/actions/workflows/codeql-analysis.yml/badge.svg" alt="CodeQL"></a>
+    <a href="https://github.com/pontus-espe/agent-sdk-go/blob/master/LICENSE"><img src="https://img.shields.io/github/license/pontus-espe/agent-sdk-go" alt="License"></a>
+    <a href="https://github.com/pontus-espe/agent-sdk-go/stargazers"><img src="https://img.shields.io/github/stars/pontus-espe/agent-sdk-go" alt="Stars"></a>
+    <a href="https://github.com/pontus-espe/agent-sdk-go/graphs/contributors"><img src="https://img.shields.io/github/contributors/pontus-espe/agent-sdk-go" alt="Contributors"></a>
+    <a href="https://github.com/pontus-espe/agent-sdk-go/commits/master"><img src="https://img.shields.io/github/last-commit/pontus-espe/agent-sdk-go" alt="Last Commit"></a>
 </p>
 
 <p align="center">
@@ -952,43 +952,56 @@ DEBUG=1 OPENAI_DEBUG=1 go run examples/typescript_code_review_example/main.go
 
 ### Requirements
 
-- Go 1.23 or later
+- Go 1.24 or later (the version in `go.mod` is what CI uses)
 
 ### Setup
 
-1. Clone the repository
-2. Run the setup script to install required tools:
+```bash
+git clone https://github.com/pontus-espe/agent-sdk-go.git
+cd agent-sdk-go
+go build ./...
+```
+
+Optional tools used by the quality checks:
 
 ```bash
-./scripts/ci_setup.sh
+go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+go install github.com/securego/gosec/v2/cmd/gosec@latest
 ```
 
 ### Development Workflow
 
-The project includes several scripts to help with development:
+```bash
+gofmt -s -w .            # format
+go vet ./...             # vet
+golangci-lint run        # errcheck, govet, ineffassign, staticcheck, unused
+gosec -quiet -exclude-dir=examples ./...
+```
 
-- `./scripts/lint.sh`: Runs formatting and linting checks
-- `./scripts/security_check.sh`: Runs security checks with gosec
-- `./scripts/check_all.sh`: Runs all checks including tests
-- `./scripts/version.sh`: Helps with versioning (run with `bump` argument to bump version)
+- `./scripts/lint.sh`: formatting, vet and build checks
+- `./scripts/security_check.sh`: security checks with gosec
+- `./scripts/check_all.sh`: all checks including tests
+- `./scripts/version.sh`: versioning helper (run with `bump` to bump the version)
 
 ### Running Tests
 
-Tests are located in the `test` directory and can be run with:
-
 ```bash
-cd test && make test
-```
-
-Or use the check_all script to run all checks including tests:
-
-```bash
-./scripts/check_all.sh
+go test ./...            # everything
+go test ./test/mcp/      # a single package
+cd test && make test     # verbose, via the test Makefile
 ```
 
 ### CI/CD
 
-The project uses GitHub Actions for CI/CD. The workflow is defined in `.github/workflows/ci.yml`.
+GitHub Actions run on every push and pull request:
+
+| Workflow | What it does |
+| --- | --- |
+| `ci.yml` | Formatting, vet, build and tests |
+| `code-quality.yml` | golangci-lint, gosec and tests with coverage |
+| `codeql-analysis.yml` | CodeQL security analysis |
+| `docs.yml` | Publishes `docs/` to GitHub Pages |
+| `release.yml` | Runs GoReleaser when a `v*` tag is pushed |
 
 </details>
 
@@ -998,7 +1011,7 @@ Contributions are welcome! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for d
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/pontus-devoteam/agent-sdk-go/blob/master/LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/pontus-espe/agent-sdk-go/blob/master/LICENSE) file for details.
 
 ## 🙏 Acknowledgements
 

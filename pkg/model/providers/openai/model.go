@@ -560,7 +560,7 @@ func (m *Model) streamResponseOnce(ctx context.Context, request *model.Request, 
 							handoffCallIndex = idx
 						} else if strings.Contains(strings.ToLower(toolCall.Name), "agent") {
 							// It might be trying to call an agent directly
-							possibleAgentName := strings.Replace(strings.ToLower(toolCall.Name), "_agent", " agent", -1)
+							possibleAgentName := strings.ReplaceAll(strings.ToLower(toolCall.Name), "_agent", " agent")
 							possibleAgentName = cases.Title(language.Und, cases.NoLower).String(possibleAgentName)
 
 							// Only use this heuristic if the name ends with "Agent"
@@ -1090,7 +1090,7 @@ func (m *Model) parseResponse(chatResponse *ChatCompletionResponse) (*model.Resp
 				}
 			} else if strings.Contains(strings.ToLower(toolCall.Function.Name), "agent") {
 				// It might be trying to call an agent directly
-				possibleAgentName := strings.Replace(strings.ToLower(toolCall.Function.Name), "_agent", " agent", -1)
+				possibleAgentName := strings.ReplaceAll(strings.ToLower(toolCall.Function.Name), "_agent", " agent")
 				possibleAgentName = cases.Title(language.Und, cases.NoLower).String(possibleAgentName)
 
 				// Only use this heuristic if the name ends with "Agent"

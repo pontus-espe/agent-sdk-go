@@ -1,27 +1,42 @@
+version: "2"
+
 run:
-  # Timeout for analysis, e.g. 30s, 5m, default is 1m
   timeout: 5m
-  # Set Go version to match CI environment
-  go: '1.24'
   # Examine test files as well
   tests: true
-  # Skip all issues from typecheck linter
   allow-parallel-runners: true
-  skip-files:
-    - ".*_test.go$"
-    - ".*/mocks/.*"
 
-# Linter settings
-linters-settings:
-  typecheck:
-    # Force disable typecheck linter completely
-    disabled: true
-
-# Available linters
 linters:
-  disable-all: true
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+  settings:
+    staticcheck:
+      checks:
+        - all
+        # Quickfix suggestions that go against the style used here: explicit
+        # embedded field selectors and if/else chains over map lookups
+        - -QF1003
+        - -QF1008
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - std-error-handling
+    rules:
+      # Examples are documentation: they favour readability over rigour
+      - path: ^examples/
+        linters:
+          - errcheck
+      # Test helpers intentionally ignore errors from stub servers
+      - path: _test\.go
+        linters:
+          - errcheck
+
+formatters:
   enable:
     - gofmt
-    - govet
-  disable:
-    - typecheck  # Explicitly disable typecheck to avoid issues with mocks and standard library 

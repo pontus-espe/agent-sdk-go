@@ -52,6 +52,9 @@ func NewStdioClient(config StdioConfig) (*Client, error) {
 		return nil, fmt.Errorf("mcp: stdio config requires a command")
 	}
 
+	// The command is supplied by the application that configures the MCP
+	// server, exactly like any other process it chooses to start.
+	/* #nosec G204 */
 	cmd := exec.Command(config.Command, config.Args...)
 	cmd.Dir = config.Dir
 	if len(config.Env) > 0 {

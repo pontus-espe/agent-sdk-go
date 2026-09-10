@@ -3,7 +3,6 @@ package runner
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/pontus-devoteam/agent-sdk-go/pkg/agent"
@@ -127,52 +126,4 @@ func (wr *WorkflowRunner) runWorkflowWithRecovery(ctx context.Context, agent Age
 	}
 
 	return runResult, runErr
-}
-
-// isRetryableError checks if an error is retryable based on configured error types
-func (wr *WorkflowRunner) isRetryableError(err error, retryableErrors []string) bool {
-	if err == nil {
-		return false
-	}
-
-	errStr := err.Error()
-	for _, retryableErr := range retryableErrors {
-		if retryableErr == errStr {
-			return true
-		}
-	}
-	return false
-}
-
-// saveWorkflowState saves the current workflow state
-func (r *WorkflowRunner) saveWorkflowState(state *WorkflowState) error {
-	if r.workflowConfig.StateManagement == nil || !r.workflowConfig.StateManagement.PersistState {
-		return nil
-	}
-
-	return r.workflowConfig.StateManagement.StateStore.SaveState("default", state)
-}
-
-// attemptRecovery attempts to recover from a panic
-func (r *WorkflowRunner) attemptRecovery(ctx context.Context, agent *agent.Agent, state *WorkflowState, rec interface{}) error {
-	if r.workflowConfig.RecoveryConfig == nil || !r.workflowConfig.RecoveryConfig.AutomaticRecovery {
-		return fmt.Errorf("recovery not configured")
-	}
-
-	// Log recovery attempt
-	if os.Getenv("DEBUG") == "1" {
-		fmt.Printf("Attempting recovery from panic: %v\n", rec)
-	}
-
-	// Save state before recovery attempt
-	if err := r.saveWorkflowState(state); err != nil {
-		return fmt.Errorf("failed to save state before recovery: %w", err)
-	}
-
-	// Call recovery function if configured
-	if r.workflowConfig.RecoveryConfig.RecoveryFunc != nil {
-		return r.workflowConfig.RecoveryConfig.RecoveryFunc(ctx, agent, state, rec)
-	}
-
-	return fmt.Errorf("no recovery function configured")
 }

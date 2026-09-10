@@ -94,7 +94,7 @@ func (a *Agent) WithOutputType(outputType interface{}) *Agent {
 	t := reflect.TypeOf(outputType)
 
 	// If it's a pointer, get the element type
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 

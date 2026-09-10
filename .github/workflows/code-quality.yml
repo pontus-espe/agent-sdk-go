@@ -1,9 +1,14 @@
 name: Code Quality
+
 on:
   push:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+
+env:
+  GOFLAGS: "-buildvcs=false"
+
 jobs:
   lint:
     name: Lint
@@ -15,64 +20,14 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
+          cache: true
 
-      - name: Fix Go module setup
-        run: |
-          # Delete existing go.mod if it exists to avoid conflicts
-          if [ -f go.mod ]; then
-            mv go.mod go.mod.bak
-          fi
-          # Initialize a new module directly in the current directory
-          go mod init github.com/pontus-devoteam/agent-sdk-go
-          # Run go mod tidy to discover dependencies
-          go mod tidy
-
-      - name: Create golangci-lint config
-        run: |
-          # Create golangci-lint config file
-          cat > .golangci.yml << 'EOF'
-          # golangci-lint configuration for v2
-          version: "2"
-          
-          run:
-            timeout: 5m
-            go: '1.24'
-            tests: true
-            allow-parallel-runners: true
-          
-          # Configured linters - minimal set known to be supported
-          linters:
-            enable:
-              - errcheck
-              - govet
-              - staticcheck
-          EOF
-
-      - name: Use golangci-lint action
+      - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
           version: latest
-          args: "--timeout=5m"
-          skip-cache: true
-          only-new-issues: true
-        env:
-          GOFLAGS: "-buildvcs=false"
-
-      - name: Fallback basic linting
-        if: always()
-        run: |
-          # Standard Go tools don't need complex module setup
-          echo "===== RUNNING GO STANDARD TOOLS ====="
-          go fmt ./... || echo "go fmt found issues (non-fatal)"
-          go vet -buildvcs=false ./... || echo "go vet found issues (non-fatal)"
-          
-          # Manually run gofmt on all files
-          echo "===== MANUALLY CHECKING FORMAT ====="
-          find . -name "*.go" | grep -v "vendor/" | xargs gofmt -d || echo "Format issues found (non-fatal)"
-          
-          echo "Linting complete (some tools may have reported issues but workflow continues)"
-          exit 0
+          args: --timeout=5m
 
   security:
     name: Security Scan
@@ -84,29 +39,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24'
-
-      - name: Fix Go module setup
-        run: |
-          # Same module setup as in the lint job
-          if [ -f go.mod ]; then
-            mv go.mod go.mod.bak
-          fi
-          go mod init github.com/pontus-devoteam/agent-sdk-go
-          go mod tidy
+          go-version-file: go.mod
+          cache: true
 
       - name: Run gosec security scanner
         uses: securego/gosec@master
         with:
-          args: -quiet ./...
-        env:
-          GOFLAGS: "-buildvcs=false"
-      
-      - name: Always succeed
-        if: always()
-        run: |
-          echo "Security scan complete (issues may have been found but workflow continues)"
-          exit 0
+          args: -quiet -exclude-dir=examples ./...
 
   test:
     name: Test with coverage
@@ -118,25 +57,18 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24'
-
-      - name: Fix Go module setup
-        run: |
-          # Same module setup as in the lint job
-          if [ -f go.mod ]; then
-            mv go.mod go.mod.bak
-          fi
-          go mod init github.com/pontus-devoteam/agent-sdk-go
-          go mod tidy
-          
-          # Install required tools
-          echo "Installing required tools..."
-          go install golang.org/x/tools/cmd/goimports@latest
-
-      - name: Fix imports
-        run: |
-          goimports -w .
+          go-version-file: go.mod
+          cache: true
 
       - name: Test with coverage
-        run: |
-          go test -race -coverprofile=coverage.out -covermode=atomic ./...
+        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Coverage summary
+        run: go tool cover -func=coverage.out | tail -1
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+          if-no-files-found: ignore

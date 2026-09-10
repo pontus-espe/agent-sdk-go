@@ -596,12 +596,6 @@ func (r *Runner) processHandoff(ctx context.Context, currentAgent AgentType, cur
 		handoffInput = ""
 	}
 
-	// Generate a task ID if one doesn't exist
-	taskID := handoffCall.TaskID
-	if taskID == "" {
-		taskID = generateTaskID()
-	}
-
 	// Record the current task's context
 	// Just comment out the response variables since they are undefined
 	/*
@@ -1285,7 +1279,7 @@ func (r *Runner) getFieldSchema(fieldType reflect.Type) map[string]interface{} {
 	schema := make(map[string]interface{})
 
 	// Handle pointers
-	if fieldType.Kind() == reflect.Ptr {
+	if fieldType.Kind() == reflect.Pointer {
 		fieldType = fieldType.Elem()
 	}
 
@@ -1725,51 +1719,6 @@ func (r *Runner) getDelegator(agentName string) string {
 	return chain[len(chain)-1]
 }
 
-// completeDelegation removes the parent from the child's delegation chain
-func (r *Runner) completeDelegation(parentName, childName string) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	// Get the delegation chain for the child
-	chain, exists := r.delegationChains[childName]
-	if !exists || len(chain) == 0 {
-		// No delegation chain exists
-		return
-	}
-
-	// Find the parent in the chain and remove it
-	for i, name := range chain {
-		if name == parentName {
-			// Remove this delegator by preserving order
-			r.delegationChains[childName] = append(chain[:i], chain[i+1:]...)
-			break
-		}
-	}
-
-	// If the chain is now empty, remove it
-	if len(r.delegationChains[childName]) == 0 {
-		delete(r.delegationChains, childName)
-	}
-}
-
-// getDelegationChain returns the full delegation chain for an agent
-func (r *Runner) getDelegationChain(agentName string) []string {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	// Get the delegation chain for the agent
-	chain, exists := r.delegationChains[agentName]
-	if !exists {
-		// No delegation chain exists
-		return []string{}
-	}
-
-	// Return a copy of the chain to prevent modification
-	result := make([]string, len(chain))
-	copy(result, chain)
-	return result
-}
-
 // createTask creates a new task in the task registry
 func (r *Runner) createTask(parentName, childName string) string {
 	r.mu.Lock()
@@ -1806,22 +1755,6 @@ func (r *Runner) completeTask(taskID string, result interface{}) {
 
 	// Mark the task as complete
 	task.Complete(result)
-}
-
-// failTask marks a task as failed
-func (r *Runner) failTask(taskID string, err error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	// Get the task
-	task, exists := r.taskRegistry[taskID]
-	if !exists {
-		// Task doesn't exist
-		return
-	}
-
-	// Mark the task as failed
-	task.Fail(err)
 }
 
 // generateTaskID generates a unique task ID
@@ -1873,41 +1806,6 @@ func (r *Runner) createRelatedTask(parentTaskID, parentName, childName string) s
 	return taskID
 }
 
-// getTasksForAgent returns all tasks for a specific agent
-func (r *Runner) getTasksForAgent(agentName string) []*TaskContext {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	var tasks []*TaskContext
-	for _, task := range r.taskRegistry {
-		if task.ChildAgentName == agentName {
-			tasks = append(tasks, task)
-		}
-	}
-
-	return tasks
-}
-
-// getTasksByRelationship returns all tasks related to a specific task
-func (r *Runner) getTasksByRelationship(taskID string) []*TaskContext {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	task, exists := r.taskRegistry[taskID]
-	if !exists {
-		return []*TaskContext{}
-	}
-
-	var relatedTasks []*TaskContext
-	for _, relatedID := range task.RelatedTaskIDs {
-		if relatedTask, exists := r.taskRegistry[relatedID]; exists {
-			relatedTasks = append(relatedTasks, relatedTask)
-		}
-	}
-
-	return relatedTasks
-}
-
 // updateTaskContext updates the working context of a task
 func (r *Runner) updateTaskContext(taskID string, artifact interface{}, artifactType string) {
 	r.mu.Lock()
@@ -1945,19 +1843,6 @@ func (r *Runner) addTaskInteraction(taskID string, role string, content interfac
 	}
 
 	task.AddInteraction(role, content)
-}
-
-// getTaskArtifact retrieves the working artifact for a task
-func (r *Runner) getTaskArtifact(taskID string) interface{} {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	task, exists := r.taskRegistry[taskID]
-	if !exists {
-		return nil
-	}
-
-	return task.GetArtifact()
 }
 
 // getTaskContextForAgent retrieves task context for the most recent task assigned to an agent
@@ -2016,12 +1901,6 @@ func (r *Runner) handleHandoff(
 	} else {
 		// Default to empty string if no input provided
 		handoffInput = ""
-	}
-
-	// Generate a task ID if one doesn't exist
-	taskID := handoffCall.TaskID
-	if taskID == "" {
-		taskID = generateTaskID()
 	}
 
 	// Record the current task's context
@@ -2274,58 +2153,4 @@ func (r *Runner) handleHandoff(
 
 	// Handoff agent not found
 	return currentAgent, handoffInput, fmt.Errorf("handoff agent %s not found", handoffCall.AgentName)
-}
-
-// generateHandoffTools creates a list of handoff tool definitions from agent list
-func (r *Runner) generateHandoffTools(handoffs []AgentType) []interface{} {
-	if len(handoffs) == 0 {
-		return nil
-	}
-
-	var tools []interface{}
-	for _, agent := range handoffs {
-		tool := map[string]interface{}{
-			"type": "function",
-			"function": map[string]interface{}{
-				"name":        handoffToolNameFor(agent.Name),
-				"description": fmt.Sprintf("Handoff to %s agent", agent.Name),
-				"parameters": map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"input": map[string]interface{}{
-							"type":        "string",
-							"description": "Input for the handoff",
-						},
-						"task_id": map[string]interface{}{
-							"type":        "string",
-							"description": "Unique identifier for the task",
-						},
-						"return_to_agent": map[string]interface{}{
-							"type":        "string",
-							"description": "Agent to return to after task completion",
-						},
-						"is_task_complete": map[string]interface{}{
-							"type":        "boolean",
-							"description": "Whether the task is complete",
-						},
-					},
-					"required": []string{"input"},
-				},
-			},
-		}
-		tools = append(tools, tool)
-	}
-	return tools
-}
-
-func (r *Runner) addHandoffTools(request *model.Request, handoffs []AgentType) {
-	if len(handoffs) > 0 {
-		handoffTools := r.generateHandoffTools(handoffs)
-		if len(handoffTools) > 0 && request.Tools == nil {
-			request.Tools = make([]interface{}, 0)
-		}
-		for _, tool := range handoffTools {
-			request.Tools = append(request.Tools, tool)
-		}
-	}
 }

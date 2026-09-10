@@ -187,38 +187,3 @@ func TestWorkflowWithMultipleAgents(t *testing.T) {
 		assert.Contains(t, updatedState.CompletedPhases, updatedState.CurrentPhase)
 	}
 }
-
-// Helper functions to create specialized agents
-func createDesignAgent() *agent.Agent {
-	designAgent := agent.NewAgent("DesignAgent")
-	designAgent.SetSystemInstructions(`You are a software design specialist.
-Your role is to analyze requirements and create high-level design specifications.
-Always use the update_state tool to set the phase to "design" when you start working.`)
-	return designAgent
-}
-
-func createCodeAgent() *agent.Agent {
-	codeAgent := agent.NewAgent("CodeAgent")
-	codeAgent.SetSystemInstructions(`You are a coding specialist.
-Your role is to implement software based on design specifications.
-Always use the update_state tool to set the phase to "implementation" when you start working.`)
-	return codeAgent
-}
-
-func createTestAgent() *agent.Agent {
-	testAgent := agent.NewAgent("TestAgent")
-	testAgent.SetSystemInstructions(`You are a testing specialist.
-Your role is to create and execute tests for implemented code.
-Always use the update_state tool to set the phase to "testing" when you start working.`)
-	return testAgent
-}
-
-// Helper function to check if a slice contains a string
-func contains(slice []string, str string) bool {
-	for _, s := range slice {
-		if s == str {
-			return true
-		}
-	}
-	return false
-}

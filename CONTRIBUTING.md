@@ -10,7 +10,7 @@ Please be respectful and considerate of others when contributing to this project
 
 1. Fork the repository
 2. Clone your fork: `git clone https://github.com/YOUR-USERNAME/agent-sdk-go.git`
-3. Set up the development environment by running `./scripts/ci_setup.sh`
+3. Build the project with `go build ./...` and run the checks with `./scripts/check_all.sh`
 4. Create a new branch for your changes: `git checkout -b feature/your-feature-name`
 
 ## Development Workflow

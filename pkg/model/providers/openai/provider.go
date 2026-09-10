@@ -58,14 +58,15 @@ type Provider struct {
 	RetryAfter time.Duration // Time to wait before retrying
 
 	// Internal state
-	baseURL       string
-	apiType       APIType
-	apiVersion    string
-	mu            sync.RWMutex
-	requestCount  int
-	tokenCount    int
-	lastResetTime time.Time
-	rateLimiter   *time.Ticker
+	baseURL             string
+	apiType             APIType
+	apiVersion          string
+	schemaCompatibility SchemaCompatibility
+	mu                  sync.RWMutex
+	requestCount        int
+	tokenCount          int
+	lastResetTime       time.Time
+	rateLimiter         *time.Ticker
 }
 
 // NewOpenAIProvider creates a new Provider with default settings
@@ -146,9 +147,40 @@ func (p *Provider) SetBaseURL(baseURL string) *Provider {
 	return p
 }
 
+// GetBaseURL returns the base URL the provider sends requests to.
+func (p *Provider) GetBaseURL() string {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.baseURL
+}
+
 // SetDefaultModel sets the default model for the provider
 func (p *Provider) SetDefaultModel(modelName string) *Provider {
 	return p.WithDefaultModel(modelName)
+}
+
+// SetSchemaCompatibility selects how tool JSON schemas are adapted before they
+// are sent to the API. See the SchemaCompatibility constants for the available
+// modes. By default the mode is detected from the base URL.
+func (p *Provider) SetSchemaCompatibility(mode SchemaCompatibility) *Provider {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.schemaCompatibility = mode
+	return p
+}
+
+// GetSchemaCompatibility returns the effective schema compatibility mode. When
+// no mode was set explicitly it is derived from the base URL, so that
+// OpenAI-compatible endpoints such as Gemini get their schemas adapted
+// automatically.
+func (p *Provider) GetSchemaCompatibility() SchemaCompatibility {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	if p.schemaCompatibility != "" {
+		return p.schemaCompatibility
+	}
+	return detectSchemaCompatibility(p.baseURL)
 }
 
 // SetAPIType sets the api type for the provider
@@ -262,4 +294,19 @@ func (p *Provider) buildAzureURL(suffix string, model string) string {
 // NewProvider creates a new provider with default settings, requires an API key
 func NewProvider(apiKey string) *Provider {
 	return NewOpenAIProvider(apiKey)
+}
+
+// GeminiBaseURL is the OpenAI compatible endpoint of the Gemini API.
+const GeminiBaseURL = "https://generativelanguage.googleapis.com/v1beta/openai"
+
+// NewGeminiProvider creates a provider for the Gemini OpenAI-compatible API.
+//
+// It is equivalent to creating a provider, pointing it at GeminiBaseURL and
+// enabling the strict schema compatibility mode that Gemini requires for tool
+// definitions.
+func NewGeminiProvider(apiKey string) *Provider {
+	p := NewOpenAIProvider(apiKey)
+	p.baseURL = GeminiBaseURL
+	p.schemaCompatibility = SchemaCompatibilityStrict
+	return p
 }

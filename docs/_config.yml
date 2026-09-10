@@ -1,0 +1,15 @@
+title: Agent SDK Go
+description: Build AI agents in Go - multiple LLM providers, tools, MCP, handoffs and tracing
+theme: jekyll-theme-cayman
+
+plugins:
+  - jekyll-relative-links
+
+relative_links:
+  enabled: true
+  collections: true
+
+show_downloads: false
+
+exclude:
+  - GO_QUALITY_GUIDELINES.md

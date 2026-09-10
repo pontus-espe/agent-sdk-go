@@ -17,7 +17,8 @@ type Agent struct {
 	Description  string
 
 	// Model configuration
-	Model         interface{} // Can be a string (model name) or a Model instance
+	Model         interface{}    // Can be a string (model name) or a Model instance
+	ModelProvider model.Provider // Optional per-agent provider, overrides the runner provider
 	ModelSettings *model.Settings
 
 	// Capabilities
@@ -93,7 +94,7 @@ func (a *Agent) WithOutputType(outputType interface{}) *Agent {
 	t := reflect.TypeOf(outputType)
 
 	// If it's a pointer, get the element type
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
@@ -120,6 +121,7 @@ func (a *Agent) Clone(overrides map[string]interface{}) *Agent {
 		Instructions:  a.Instructions,
 		Description:   a.Description,
 		Model:         a.Model,
+		ModelProvider: a.ModelProvider,
 		ModelSettings: a.ModelSettings,
 		Tools:         make([]tool.Tool, len(a.Tools)),
 		Handoffs:      make([]*Agent, len(a.Handoffs)),
@@ -144,6 +146,8 @@ func (a *Agent) Clone(overrides map[string]interface{}) *Agent {
 			clone.Description = value.(string)
 		case "Model":
 			clone.Model = value
+		case "ModelProvider":
+			clone.ModelProvider = value.(model.Provider)
 		case "ModelSettings":
 			clone.ModelSettings = value.(*model.Settings)
 		case "OutputType":
@@ -168,12 +172,22 @@ func (a *Agent) AsTool(toolName, toolDescription string) tool.Tool {
 	panic("not implemented")
 }
 
-// SetModelProvider sets the model provider for the agent
-func (a *Agent) SetModelProvider(provider model.Provider) *Agent {
+// WithModelProvider sets the model provider used to resolve this agent's model.
+//
+// Setting a provider per agent makes it possible to mix providers inside a
+// single (bidirectional) multi-agent workflow: each agent is resolved with its
+// own provider and falls back to the runner provider when none is set.
+func (a *Agent) WithModelProvider(provider model.Provider) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.Model = provider
+	a.ModelProvider = provider
 	return a
+}
+
+// SetModelProvider sets the model provider for the agent.
+// It is an alias for WithModelProvider.
+func (a *Agent) SetModelProvider(provider model.Provider) *Agent {
+	return a.WithModelProvider(provider)
 }
 
 // SetSystemInstructions sets the system instructions for the agent

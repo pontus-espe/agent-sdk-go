@@ -158,7 +158,17 @@ func TestSetModelProvider(t *testing.T) {
 	a.SetModelProvider(provider)
 
 	// Check if model provider was set correctly
-	if a.Model != provider {
+	if a.ModelProvider != provider {
 		t.Errorf("Agent model provider not set correctly")
+	}
+
+	// The model itself is untouched so a per-agent provider can be combined
+	// with a per-agent model name
+	a.WithModel("test-model")
+	if a.ModelProvider != provider {
+		t.Errorf("Agent model provider was overwritten by the model name")
+	}
+	if a.Model != "test-model" {
+		t.Errorf("Agent model not set correctly")
 	}
 }

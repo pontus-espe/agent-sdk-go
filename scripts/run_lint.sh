@@ -59,8 +59,8 @@ if [ -f ".golangci.yml" ]; then
 fi
 
 # First attempt - with both flags
-echo "Running: $GOLANGCI_LINT run $CONFIG_FLAG --go=1.23 $ARGS"
-$GOLANGCI_LINT run $CONFIG_FLAG --go=1.23 $ARGS
+echo "Running: $GOLANGCI_LINT run $CONFIG_FLAG $ARGS"
+$GOLANGCI_LINT run $CONFIG_FLAG $ARGS
 exit_code=$?
 
 # If first attempt fails, try with environment variable only

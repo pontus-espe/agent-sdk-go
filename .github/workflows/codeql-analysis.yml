@@ -23,34 +23,27 @@ jobs:
         language: [ 'go' ]
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
-      with:
-        languages: ${{ matrix.language }}
-        queries: security-extended,security-and-quality
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
 
-    - name: Setup Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.23'
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended,security-and-quality
 
-    - name: Fix module setup
-      run: |
-        if [ -f go.mod ]; then
-          mv go.mod go.mod.bak
-        fi
-        go mod init github.com/pontus-devoteam/agent-sdk-go
-        go mod tidy
+      - name: Build
+        run: go build ./...
+        env:
+          GOFLAGS: "-buildvcs=false"
 
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
-      with:
-        category: "/language:${{matrix.language}}"
-
-    - name: Build
-      run: |
-        # Module is already initialized in the "Fix module setup" step
-        go build ./... 
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{matrix.language}}"

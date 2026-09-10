@@ -96,9 +96,7 @@ func (t *FileTracer) RecordEvent(ctx context.Context, event Event) {
 	defer t.mu.Unlock()
 
 	// Set timestamp if not set
-	if event.Timestamp.IsZero() {
-		event.Timestamp = time.Now()
-	}
+	event = withTimestamp(event)
 
 	// Marshal event to JSON
 	data, err := json.Marshal(event)
@@ -166,7 +164,22 @@ func RecordEvent(ctx context.Context, event Event) {
 	GetGlobalTracer().RecordEvent(ctx, event)
 }
 
-// TraceForAgent creates a tracer for an agent
+// TraceForAgent creates a tracer for an agent.
+//
+// When a global tracer factory has been installed with SetTracerFactory it is
+// used, which makes it possible to replace the default file tracer with any
+// custom implementation. Otherwise a FileTracer is created.
 func TraceForAgent(agentName string) (Tracer, error) {
+	if factory := GetTracerFactory(); factory != nil {
+		return factory(agentName)
+	}
 	return NewFileTracer(agentName)
+}
+
+// withTimestamp returns the event with its timestamp filled in when missing.
+func withTimestamp(event Event) Event {
+	if event.Timestamp.IsZero() {
+		event.Timestamp = time.Now()
+	}
+	return event
 }

@@ -2,7 +2,7 @@
 
 set -e
 
-REQUIRED_GO_VERSION="1.23"
+REQUIRED_GO_VERSION="1.24"
 
 echo "Checking Go version..."
 GO_VERSION=$(go version | awk '{print $3}' | sed 's/go//')

@@ -209,10 +209,9 @@ func (m *Model) StreamResponse(ctx context.Context, request *model.Request) (<-c
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer func() {
-		if closeErr := httpResponse.Body.Close(); closeErr != nil {
-			// Log the error or handle it appropriately within the goroutine
-			// log.Printf("Warning: error closing response body in goroutine: %v", closeErr)
-		}
+		// The body is fully consumed by the stream reader; a close error here
+		// carries no useful information for the caller
+		_ = httpResponse.Body.Close()
 	}()
 
 	// Check for errors
@@ -227,10 +226,8 @@ func (m *Model) StreamResponse(ctx context.Context, request *model.Request) (<-c
 	// Start a goroutine to process the stream
 	go func() {
 		defer func() {
-			if closeErr := httpResponse.Body.Close(); closeErr != nil {
-				// Log the error or handle it appropriately within the goroutine
-				// log.Printf("Warning: error closing response body in goroutine: %v", closeErr)
-			}
+			// Nothing can act on a close error once the goroutine is done
+			_ = httpResponse.Body.Close()
 		}()
 		defer close(eventChan)
 
@@ -444,15 +441,21 @@ func createToolResultMessage(message map[string]interface{}) *ChatMessage {
 		return nil
 	}
 
+	// The tool name comes from the model, so it is neither guaranteed to be a
+	// string nor free of quotes: %q escapes it instead of wrapping it in quotes
+	name, ok := toolCall["name"].(string)
+	if !ok {
+		// Skip tool calls without a usable name
+		return nil
+	}
+
 	// Create a tool result message
-	content := fmt.Sprintf("Tool '%s' returned: %v",
-		toolCall["name"].(string),
-		toolResult["content"])
+	content := fmt.Sprintf("Tool %q returned: %v", name, toolResult["content"])
 
 	return &ChatMessage{
 		Role:    "tool",
 		Content: content,
-		Name:    toolCall["name"].(string),
+		Name:    name,
 	}
 }
 
@@ -732,7 +735,7 @@ func (m *Model) parseResponse(chatResponse *ChatCompletionResponse) (*model.Resp
 				}
 			} else if strings.Contains(strings.ToLower(toolCall.Function.Name), "agent") {
 				// It might be trying to call an agent directly
-				possibleAgentName := strings.Replace(strings.ToLower(toolCall.Function.Name), "_agent", " agent", -1)
+				possibleAgentName := strings.ReplaceAll(strings.ToLower(toolCall.Function.Name), "_agent", " agent")
 				possibleAgentName = cases.Title(language.Und, cases.NoLower).String(possibleAgentName)
 
 				// Only use this heuristic if the name ends with "Agent"

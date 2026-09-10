@@ -441,15 +441,21 @@ func createToolResultMessage(message map[string]interface{}) *ChatMessage {
 		return nil
 	}
 
+	// The tool name comes from the model, so it is neither guaranteed to be a
+	// string nor free of quotes: %q escapes it instead of wrapping it in quotes
+	name, ok := toolCall["name"].(string)
+	if !ok {
+		// Skip tool calls without a usable name
+		return nil
+	}
+
 	// Create a tool result message
-	content := fmt.Sprintf("Tool '%s' returned: %v",
-		toolCall["name"].(string),
-		toolResult["content"])
+	content := fmt.Sprintf("Tool %q returned: %v", name, toolResult["content"])
 
 	return &ChatMessage{
 		Role:    "tool",
 		Content: content,
-		Name:    toolCall["name"].(string),
+		Name:    name,
 	}
 }
 

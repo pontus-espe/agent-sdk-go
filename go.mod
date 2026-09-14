@@ -1,14 +1,12 @@
 module github.com/pontus-devoteam/agent-sdk-go
 
-go 1.24.0
-
-toolchain go1.24.10
+go 1.26.0
 
 replace github.com/pontus-devoteam/agent-sdk-go => ./
 
 require (
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/text v0.31.0
+	golang.org/x/text v0.42.0
 )
 
 require (

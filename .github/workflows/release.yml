@@ -43,7 +43,7 @@ jobs:
         echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$(git describe --tags --abbrev=0 HEAD^)...${GITHUB_REF#refs/tags/}" >> RELEASE_NOTES.md
 
     - name: Update Release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         body_path: RELEASE_NOTES.md
       env:
